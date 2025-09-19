@@ -7,65 +7,50 @@ on:
     branches: [ main, master ]
 
 jobs:
-  build-and-test:
+  test:
     runs-on: ubuntu-latest
-    env:
-      MAVEN_OPTS: -Xmx2g
-
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Show workspace (debug)
+      - name: List repo (debug)
         run: |
-          echo "WORKSPACE: $GITHUB_WORKSPACE"
-          pwd
+          echo "PWD: $(pwd)"
           ls -la
-          echo "Listing src and root files..."
-          ls -la src || true
-          ls -la target || true
+          echo "Full repo tree (first 200 lines):"
+          ls -R | sed -n '1,200p'
 
-      - name: Setup JDK 17
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
           cache: maven
 
-      - name: Show Java & Maven version
+      - name: Show Java & Maven versions
         run: |
           java -version
-          javac -version || true
           mvn -version
 
-      - name: Cache Maven repository
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2/repository
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: |
-            ${{ runner.os }}-m2-
+      - name: Run tests (maven)
+        run: mvn -B test -Dheadless=true -DbaseUrl=https://www.amazon.in/
+        working-directory: ./TestSuiteManagement/TestSuiteManagement
 
-      - name: Run mvn -X test (debug)
-        # Use -X for debug logs; remove -X later after fix
-        run: mvn -B -X test
-        # If you want to skip tests temporarily: mvn -B -DskipTests=true package
+      - name: List target directory (always)
+        if: always()
+        run: |
+          echo "Listing target directory under the module..."
+          ls -la TestSuiteManagement/TestSuiteManagement/target || true
+          find TestSuiteManagement/TestSuiteManagement/target -maxdepth 3 -type f -print || true
 
-      - name: Collect test artifacts (always)
+      - name: Upload test artifacts (always)
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-artifacts
           path: |
-            target/surefire-reports/**
-            target/failsafe-reports/**
-            target/*.html
-            target/*.xml
-            target/cucumber.json
-            target/allure-results/**
-
-      - name: Print tail of surefire log (if present)
-        if: always()
-        run: |
-          echo "---- surefire reports ----"
-          find target -type f -name "*.txt" -o -name "*.log" -o -name "*.xml" -maxdepth 3 -print -exec tail -n 200 {} \; || true
+            TestSuiteManagement/TestSuiteManagement/target/surefire-reports/**
+            TestSuiteManagement/TestSuiteManagement/target/*.html
+            TestSuiteManagement/TestSuiteManagement/target/*.xml
+            TestSuiteManagement/TestSuiteManagement/target/cucumber.json
+            TestSuiteManagement/TestSuiteManagement/target/allure-results/**
