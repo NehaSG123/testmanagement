@@ -6,10 +6,11 @@ import io.cucumber.junit.CucumberOptions;
 
 @RunWith(Cucumber.class)
 @CucumberOptions(
-    features = "src/test/resources/features",   // ✅ तुझ्या .feature फाइलचा path
-    glue = {"steps"},                           // ✅ Step definitions चं package
-    plugin = {"pretty", "html:target/cucumber-reports.html"},
-    monochrome = true
+    features = "classpath:features",
+    glue = {"stepdefinitions"},
+    plugin = {"pretty","json:target/cucumber.json","html:target/cucumber-report.html"}
 )
+
 public class TestRunner {
 }
+
